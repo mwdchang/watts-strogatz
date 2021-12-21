@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300&display=swap" rel="stylesheet">
+<style>
+* {
+  font-family: 'Source Sans Pro', sans-serif;
+}
+.control {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+</style>
+</head>
+<body>
+  <div>
+  Random graph generation with small-world properties.
+  See <a href="https://en.wikipedia.org/wiki/Watts%E2%80%93Strogatz_model">Watts-Strogatz</a>
+  </div>
+  <div class="control">
+    <label>Num nodes:</label><input id="num-nodes" type="range" min="10" max="100" value="20"> 
+  </div>
+  <div class="control">
+    <label>DegreesK:</label><input id="k-degrees" type="range" min="2" max="20" step="2" value="2"> 
+  </div>
+  <div class="control">
+    <label>Beta:</label><input id="beta" type="range" min="0" max="1" step="0.1" value="0"> 
+  </div>
+  <svg>
+  </svg>
+</body>
+<script type="module">
+import * as d3 from "https://cdn.skypack.dev/d3@7";
+import { wattsStrogatz} from './watts-strogatz.js';
+
+function collectInput() {
+  const numNodes = +document.getElementById('num-nodes').value;
+  const kDegrees = +document.getElementById('k-degrees').value;
+  const beta = +document.getElementById('beta').value;
+
+  console.log(`num-nodes=${numNodes}, k-degrees=${kDegrees}, beta=${beta}`);
+  return {
+    numNodes,
+    kDegrees,
+    beta
+  };
+}
+
+function render() {
+  const { numNodes, kDegrees, beta } = collectInput();
+  const { nodes, edges } = wattsStrogatz(numNodes, kDegrees, beta);
+
+  // Setup svg canvas
+  const svg = d3.select('svg').attr('width', '400px').attr('height', '400px');
+  svg.selectAll('*').remove();
+
+  const centerX = 200;
+  const centerY = 200;
+  const radius = 150;
+
+  for (let i = 0; i < nodes.length; i++) {
+    nodes[i].radian = i * 2 * Math.PI / nodes.length;
+  }
+
+  for (let i = 0; i < edges.length; i++) {
+    edges[i].sourceRadian = edges[i].source * 2 * Math.PI / nodes.length;
+    edges[i].targetRadian = edges[i].target * 2 * Math.PI / nodes.length;
+  }
+
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    svg.append('line')
+      .style("stroke", "#888")
+      .attr('x1', centerX + Math.sin(e.sourceRadian) * radius) 
+      .attr('y1', centerX + Math.cos(e.sourceRadian) * radius) 
+      .attr('x2', centerX + Math.sin(e.targetRadian) * radius) 
+      .attr('y2', centerX + Math.cos(e.targetRadian) * radius);
+  }
+
+  svg.selectAll('circle')
+    .data(nodes)
+    .enter()
+    .append('circle')
+    .attr('cx', d => {
+      return centerX + Math.sin(d.radian) * radius;
+    })
+    .attr('cy', d => {
+      return centerY + Math.cos(d.radian) * radius;
+    })
+    .attr('r', 4)
+    .attr('fill', '#f80');
+}
+
+
+document.getElementById('num-nodes').addEventListener('input', render);
+document.getElementById('k-degrees').addEventListener('input', render);
+document.getElementById('beta').addEventListener('input', render);
+
+render();
+
+</script>
+</html>
